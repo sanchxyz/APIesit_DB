@@ -1,0 +1,12 @@
+<<<<<<< HEAD
+=======
+# Librerias a utilizar en el proyecto 
+>>>>>>> 3ec98f9abfac789a8d7c42c9147d89bee33ff830
+fastapi==0.98.0
+uvicorn==0.23.0
+sqlalchemy==2.0.20
+pymysql==1.0.3
+<<<<<<< HEAD
+pydantic==1.10.8
+=======
+>>>>>>> 3ec98f9abfac789a8d7c42c9147d89bee33ff830
