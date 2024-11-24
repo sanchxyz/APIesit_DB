@@ -23,7 +23,8 @@ APIREST_4DB/
 ## Instalación
 1. **Clonar el repositorio:**
    ```bash
-   git clone [https://github.com/sanchxyz/APIrest_4DB.git]
+   git clone [git@github.com:sanchxyz/APIrest_4DB.git]
+
 
 2. **Crear un entorno virtual**
     python -m venv venv
