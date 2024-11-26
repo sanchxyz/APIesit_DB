@@ -28,8 +28,9 @@ Sigue estos pasos para configurar y ejecutar el proyecto:
 
 1. Clonar el repositorio
 
-git clone git@github.com:golmedo98/APIrest_4DB.git
-cd APIrest_4DB
+git@github.com:sanchxyz/APIesit_DB.git
+
+cd APIesit_D
 
 
 2. Crear un entorno virtual
@@ -62,6 +63,7 @@ uvicorn app.main:app --reload
 
 
 2. Acceder a la documentación interactiva
+
 FastAPI genera automáticamente una interfaz para interactuar con la API.
 
 Documentación Swagger: http://127.0.0.1:8000/docs
