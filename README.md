@@ -9,7 +9,7 @@ Utilizando **FastAPI** y **SQLAlchemy**, se desarrolla una API REST que interact
 ## 🗂️ Estructura del Proyecto
 
 ```plaintext
-APIREST_4DB/
+APIesit_DB/
 ├── app/                # Contiene la lógica de la aplicación
 │   ├── __init__.py     # Inicializa el paquete app
 │   ├── main.py         # Punto de entrada de la aplicación
