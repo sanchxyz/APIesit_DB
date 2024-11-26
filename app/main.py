@@ -5,6 +5,8 @@ from .database import SessionLocal, engine
 from .models import Base
 from .crud import get_usuario, create_usuario
 from pydantic import BaseModel
+from .crud import delete_usuario, update_usuario 
+
 
 # Inicializar la aplicación
 app = FastAPI()
@@ -61,3 +63,29 @@ def read_usuario_endpoint(usuario_id: int, db: Session = Depends(get_db)):
     if not usuario:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
     return usuario
+
+
+
+# Endpoint para eliminar un usuario por ID
+@app.delete("/usuarios/{usuario_id}")
+def delete_usuario_endpoint(usuario_id: int, db: Session = Depends(get_db)):
+    usuario = delete_usuario(db, usuario_id)
+    if not usuario:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    return {"message": "Usuario eliminado exitosamente", "usuario": usuario}
+
+# Modelo Pydantic para actualizar usuarios
+class UsuarioUpdate(BaseModel):
+    nombre: str | None = None
+    correo: str | None = None
+    contraseña: str | None = None
+    direccion: str | None = None
+
+# Endpoint para actualizar un usuario por ID
+@app.put("/usuarios/{usuario_id}")
+def update_usuario_endpoint(usuario_id: int, usuario: UsuarioUpdate, db: Session = Depends(get_db)):
+    nuevo_usuario = usuario.dict(exclude_unset=True)  # Ignorar campos no proporcionados
+    usuario_actualizado = update_usuario(db, usuario_id, nuevo_usuario)
+    if not usuario_actualizado:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    return usuario_actualizado
