@@ -28,7 +28,7 @@ Sigue estos pasos para configurar y ejecutar el proyecto:
 
 1. Clonar el repositorio
 
-git@github.com:sanchxyz/APIesit_DB.git
+    git clone git@github.com:sanchxyz/APIesit_DB.git
 
 cd APIesit_D
 
