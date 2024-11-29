@@ -28,7 +28,7 @@ Sigue estos pasos para configurar y ejecutar el proyecto:
 
 1. Clonar el repositorio
 
-    git clone git@github.com:sanchxyz/APIesit_DB.git
+git clone git@github.com:sanchxyz/APIesit_DB.git
 
 cd APIesit_D
 
@@ -51,6 +51,9 @@ source venv/bin/activate
 3. Instalar dependencias
 
 pip install -r requirements.txt
+
+
+4. Recuerda cambiar el "DATABASE_URL " en el archivo database.py por defecto apunta a un sevidor mysql en la nube, pero puedes copiarte la DB y usarla de forma local ya que la que esta en la nube tiene un maximo de 5 solicitudes simultaneas !
 
 
 
