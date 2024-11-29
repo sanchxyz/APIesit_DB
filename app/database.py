@@ -1,25 +1,34 @@
-# Importación de las clases necesarias de SQLAlchemy
-from sqlalchemy import create_engine  # Función para crear el motor de conexión con la base de datos
-from sqlalchemy.orm import sessionmaker  # Función para configurar el manejador de sesiones
-from sqlalchemy.exc import SQLAlchemyError  # Excepción que maneja los errores específicos de SQLAlchemy
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.exc import SQLAlchemyError
 
-# Configuración de la URL de conexión a la base de datos
-# La URL incluye el tipo de base de datos (mysql), el nombre del usuario (root),
-# la contraseña (simple123), la dirección del host (localhost), el puerto (3306) y el nombre de la base de datos (Ecommerce_Esit)
-DATABASE_URL = "mysql+pymysql://root:simple123@localhost:3306/Ecommerce_Esit"
+# URL de conexión a la base de datos en Clever Cloud
+DATABASE_URL = "mysql+pymysql://uq0mfjrhjiodyetg:b4X7Uar2RmXzqEX642sN@bvs4gf3xerihsn5ovmva-mysql.services.clever-cloud.com:3306/bvs4gf3xerihsn5ovmva"
 
-# Crear el motor de conexión a la base de datos
-# El motor se configura con un tamaño de pool de 20 conexiones y un máximo de conexiones adicionales de 0 (sin sobrecarga).
-# Esto asegura un manejo eficiente de conexiones sin exceder los recursos del servidor de base de datos.
+#Para coneccion local
+#DATABASE_URL = "mysql+pymysql://root:simple123@localhost:3306/Ecommerce_DB"
+
 try:
-    engine = create_engine(DATABASE_URL, pool_size=20, max_overflow=0)
+    # Crear el motor de la base de datos
+    engine = create_engine(
+        DATABASE_URL,
+        pool_size=20,  # Ajuste de tamaño del pool según sea necesario
+        max_overflow=0,  # Evita que se creen conexiones adicionales más allá del pool_size
+        pool_timeout=30,  # Tiempo de espera para obtener una conexión del pool
+        pool_pre_ping=True,  # Verifica la conexión antes de usarla
+        echo=False  # Desactiva la salida SQL (útil para producción)
+    )
 except SQLAlchemyError as e:
-    # Si ocurre un error al intentar establecer la conexión, se captura el error y se imprime un mensaje.
-    # La excepción SQLAlchemyError proporciona detalles sobre el tipo específico de error en la conexión.
+    # Manejador de errores en caso de fallo de conexión
     print("Error al conectar a la base de datos:", e)
+    raise
 
-# Configuración de la sesión de la base de datos
-# 'autocommit=False' evita que la sesión confirme automáticamente las transacciones sin explícitamente llamarlo.
-# 'autoflush=False' evita que las consultas se envíen de manera automática antes de un commit.
-# 'bind=engine' asocia la sesión con el motor de base de datos previamente creado.
+# Crear la sesión local para interactuar con la base de datos
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+def get_db():
+    db = SessionLocal()  # Establece una sesión para acceder a la DB
+    try:
+        yield db  # Retorna la sesión para ser usada por otras funciones
+    finally:
+        db.close()  # Cierra la sesión cuando termine de usarse
