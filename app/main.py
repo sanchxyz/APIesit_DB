@@ -1,58 +1,85 @@
-# Importaciones necesarias para la creación de la API y manejo de datos
-from fastapi import FastAPI, Depends, HTTPException  # FastAPI proporciona las herramientas para crear la API
-from fastapi.middleware.cors import CORSMiddleware  # Middleware para habilitar CORS (Cross-Origin Resource Sharing)
-from sqlalchemy.orm import Session  # Para manejar las sesiones de SQLAlchemy
-from .database import SessionLocal, engine  # Se importan el motor de base de datos y la configuración de la sesión local
-from .models import Base  # Importa la clase Base para manejar la creación de tablas en la base de datos
-from .crud import get_usuario, create_usuario, delete_usuario, update_usuario, get_categoria, create_categoria, delete_categoria, update_categoria, get_producto, create_producto, delete_producto, update_producto, get_pedido, create_pedido, delete_pedido, update_pedido, get_detalle_pedido, create_detalle_pedido, delete_detalle_pedido, update_detalle_pedido  # Funciones CRUD para manejar usuarios, categorías, productos, pedidos, etc.
-from pydantic import BaseModel  # Para la validación de datos con Pydantic
+# Importación de módulos necesarios de FastAPI
+from fastapi import FastAPI, Depends, HTTPException
+from fastapi.responses import HTMLResponse
+from fastapi.middleware.cors import CORSMiddleware
 
-# Inicializar la aplicación FastAPI
-app = FastAPI()
+# Importación de módulos para manejar la base de datos con SQLAlchemy
+from sqlalchemy.orm import Session
+from .database import SessionLocal, engine
+from .models import Base
 
-# Configuración del middleware CORS para permitir que el frontend acceda a la API
-# Permite solicitudes desde cualquier origen (esto debe ajustarse a necesidades de seguridad específicas)
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],  # Permite solicitudes de todos los orígenes (reemplazar por dominios específicos en producción)
-    allow_credentials=True,
-    allow_methods=["*"],  # Permite todos los métodos HTTP
-    allow_headers=["*"],  # Permite todas las cabeceras
+# Importación de las funciones CRUD desde el módulo correspondiente
+from .crud import (
+    get_usuario, create_usuario, delete_usuario, update_usuario,
+    get_categoria, create_categoria, delete_categoria, update_categoria,
+    get_producto, create_producto, delete_producto, update_producto,
+    get_pedido, create_pedido, delete_pedido, update_pedido,
+    get_detalle_pedido, create_detalle_pedido, delete_detalle_pedido, update_detalle_pedido,
+    authenticate_usuario
 )
 
-# Ruta de prueba para la raíz de la API
-@app.get("/")
-def read_root():
-    return {"message": "Bienvenido a mi API para la ESIT !"}
+# Importación de Pydantic para definir modelos de datos
+from pydantic import BaseModel
 
-# Evento de inicio de la aplicación para crear las tablas de la base de datos
+# Inicialización de la aplicación FastAPI
+app = FastAPI()
+
+# Configuración del middleware CORS (Cross-Origin Resource Sharing)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Permitir solicitudes desde cualquier origen
+    allow_credentials=True,  # Permitir el envío de cookies y credenciales
+    allow_methods=["*"],  # Permitir todos los métodos HTTP
+    allow_headers=["*"],  # Permitir todos los encabezados
+)
+
+# Ruta de prueba para verificar que la API está funcionando
+@app.get("/", response_class=HTMLResponse)
+def read_root():
+    # Mensaje HTML que describe la API
+    message = """Bienvenido a este proyecto que tiene como finalidad<br>
+    crear una API que conecte con una base de datos para usar las funciones CRUD<br>
+    Puedes usar swagger para ver los endpoints solo agrega a la URL ( /docs )<br>
+    la API no tienen ningun factor de seguridad como JWT asi que puedes testear cada endpoint a discrecion<br><br>
+    Creadores:<br>
+    Gustavo Alejandro Sanchez<br>
+    Griselda Marroquin<br>
+    Guillermo Montenegro."""
+    return message
+
+# Evento de inicio para inicializar la base de datos
 @app.on_event("startup")
 def startup():
+    # Crear todas las tablas definidas en los modelos si no existen
     Base.metadata.create_all(bind=engine)
 
 # Dependencia para obtener una sesión de base de datos
-# Esta función es utilizada por FastAPI para crear y gestionar la conexión a la base de datos
 def get_db():
-    db = SessionLocal()  # Crea una nueva sesión de base de datos
+    db = SessionLocal()  # Crear una nueva sesión de base de datos
     try:
-        yield db  # La sesión es devuelta al llamador
+        yield db  # Hacer que la sesión esté disponible como dependencia
     finally:
-        db.close()  # Asegura que la sesión sea cerrada después de su uso
+        db.close()  # Cerrar la sesión después de usarla
 
-# Modelos Pydantic para la creación y actualización de datos
+# Definición de modelos Pydantic para validación y serialización
 
+# Modelo para crear un nuevo usuario
 class UsuarioCreate(BaseModel):
-    nombre: str
-    correo: str
-    contraseña: str
-    direccion: str
-    telefono: str | None = None
-    estado: str = 'activo'
+    nombre: str  # Nombre del usuario
+    correo: str  # Correo electrónico del usuario
+    contraseña: str  # Contraseña del usuario
+    direccion: str  # Dirección del usuario
+    telefono: str | None = None  # Teléfono (opcional)
+    estado: str = "activo"  # Estado del usuario, por defecto "activo"
 
-    class Config:
-        from_attributes = True
+# Modelo para autenticación de usuario
+class UsuarioAuth(BaseModel):
+    correo: str  # Correo del usuario
+    contraseña: str  # Contraseña para autenticación
 
+# Modelo para actualizar los datos de un usuario
 class UsuarioUpdate(BaseModel):
+    # Campos opcionales para actualizar los datos del usuario
     nombre: str | None = None
     correo: str | None = None
     contraseña: str | None = None
@@ -60,32 +87,38 @@ class UsuarioUpdate(BaseModel):
     telefono: str | None = None
     estado: str | None = None
 
+# Modelo para crear una categoría
 class CategoriaCreate(BaseModel):
-    nombre: str
-    descripcion: str = ""
-    estado: str = 'activo'
+    nombre: str  # Nombre de la categoría
+    descripcion: str = ""  # Descripción (por defecto, vacía)
+    estado: str = 'activo'  # Estado de la categoría, por defecto "activo"
 
     class Config:
-        from_attributes = True
+        from_attributes = True  # Configuración para permitir atributos adicionales
 
+# Modelo para actualizar una categoría
 class CategoriaUpdate(BaseModel):
+    # Campos opcionales para actualizar una categoría
     nombre: str | None = None
     descripcion: str | None = None
     estado: str | None = None
 
+# Modelo para crear un producto
 class ProductoCreate(BaseModel):
-    nombre: str
-    descripcion: str
-    precio: float
-    categoriaID: int
-    stock: int
-    sku: str
-    estado: str = 'activo'
+    nombre: str  # Nombre del producto
+    descripcion: str  # Descripción del producto
+    precio: float  # Precio del producto
+    categoriaID: int  # ID de la categoría asociada
+    stock: int  # Cantidad en stock
+    sku: str  # Código único del producto
+    estado: str = 'activo'  # Estado del producto, por defecto "activo"
 
     class Config:
-        from_attributes = True
+        from_attributes = True  # Configuración para atributos adicionales
 
+# Modelo para actualizar un producto
 class ProductoUpdate(BaseModel):
+    # Campos opcionales para actualizar un producto
     nombre: str | None = None
     descripcion: str | None = None
     precio: float | None = None
@@ -94,46 +127,57 @@ class ProductoUpdate(BaseModel):
     sku: str | None = None
     estado: str | None = None
 
+# Modelo para crear un pedido
 class PedidoCreate(BaseModel):
-    usuarioID: int
-    total: float
-    metodo_pago: str | None = None
-    estado_pedido: str = 'pendiente'
+    usuarioID: int  # ID del usuario que realiza el pedido
+    total: float  # Monto total del pedido
+    metodo_pago: str | None = None  # Método de pago (opcional)
+    estado_pedido: str = 'pendiente'  # Estado del pedido, por defecto "pendiente"
 
     class Config:
-        from_attributes = True
+        from_attributes = True  # Configuración para atributos adicionales
 
+# Modelo para actualizar un pedido
 class PedidoUpdate(BaseModel):
+    # Campos opcionales para actualizar un pedido
     total: float | None = None
     metodo_pago: str | None = None
     estado_pedido: str | None = None
 
+# Modelo para crear un detalle de pedido
 class DetallePedidoCreate(BaseModel):
-    pedidoID: int
-    productoID: int
-    cantidad: int
-    precio_unitario: float
-    subtotal: float
+    pedidoID: int  # ID del pedido asociado
+    productoID: int  # ID del producto asociado
+    cantidad: int  # Cantidad de productos
+    precio_unitario: float  # Precio unitario del producto
+    subtotal: float  # Subtotal del detalle
 
     class Config:
-        from_attributes = True
+        from_attributes = True  # Configuración para atributos adicionales
 
+# Modelo para actualizar un detalle de pedido
 class DetallePedidoUpdate(BaseModel):
+    # Campos opcionales para actualizar un detalle de pedido
     cantidad: int | None = None
     precio_unitario: float | None = None
     subtotal: float | None = None
 
 
 # Endpoints para usuarios
-
 @app.post("/usuarios/")
 def create_usuario_endpoint(usuario: UsuarioCreate, db: Session = Depends(get_db)):
     try:
-        # Crear un usuario en la base de datos
         return create_usuario(db, **usuario.dict())
     except Exception as e:
-        # En caso de error, lanzar una excepción HTTP con el detalle del error
         raise HTTPException(status_code=400, detail=str(e))
+
+@app.post("/usuarios/auth/")
+def authenticate_usuario_endpoint(usuario: UsuarioAuth, db: Session = Depends(get_db)):
+    usuario_db = authenticate_usuario(db, usuario.correo, usuario.contraseña)
+    if not usuario_db:
+        raise HTTPException(status_code=401, detail="Credenciales incorrectas")
+    return {"message": "Autenticación exitosa", "usuario": usuario_db.nombre}
+
 
 @app.get("/usuarios/{usuario_id}")
 def read_usuario_endpoint(usuario_id: int, db: Session = Depends(get_db)):

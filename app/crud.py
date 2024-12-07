@@ -1,21 +1,32 @@
-# Importación de la clase Session de SQLAlchemy para manejar la sesión de la base de datos
 from sqlalchemy.orm import Session
-# Importación de IntegrityError para manejar errores de integridad en la base de datos
+from fastapi import HTTPException
 from sqlalchemy.exc import IntegrityError
-# Importación de los modelos de la base de datos
 from .models import Usuarios, Categorias, Productos, Pedidos, Detalles_Pedido
+from passlib.context import CryptContext
+
+# Crear el contexto de passlib para usar bcrypt
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+# Función para obtener el hash de la contraseña
+def get_password_hash(password: str) -> str:
+    return pwd_context.hash(password)
+
+# Función para verificar una contraseña
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    return pwd_context.verify(plain_password, hashed_password)
 
 # Función para obtener un usuario de la base de datos por su ID
 def get_usuario(db: Session, usuario_id: int):
     return db.query(Usuarios).filter(Usuarios.usuarioID == usuario_id).first()
 
-# Función para crear un nuevo usuario en la base de datos
+
 def create_usuario(db: Session, nombre: str, correo: str, contraseña: str, direccion: str, telefono: str = None, estado: str = 'activo'):
     try:
+        hashed_password = get_password_hash(contraseña)
         usuario = Usuarios(
-            nombre=nombre, 
-            correo=correo, 
-            contraseña=contraseña, 
+            nombre=nombre,
+            correo=correo,
+            hashed_password=hashed_password,
             direccion=direccion,
             telefono=telefono,
             estado=estado
@@ -26,7 +37,20 @@ def create_usuario(db: Session, nombre: str, correo: str, contraseña: str, dire
         return usuario
     except IntegrityError as e:
         db.rollback()
-        raise Exception(f"Error al crear usuario: {e.orig}")
+        raise HTTPException(status_code=400, detail=f"Error de integridad: {str(e.orig)}")
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Error inesperado: {str(e)}")
+
+
+
+# Función para verificar credenciales de usuario
+def authenticate_usuario(db: Session, correo: str, contraseña: str):
+    usuario = db.query(Usuarios).filter(Usuarios.correo == correo).first()
+    if usuario and verify_password(contraseña, usuario.hashed_password):
+        return usuario
+    return None
+
+
 
 # Función para eliminar un usuario de la base de datos por su ID
 def delete_usuario(db: Session, usuario_id: int):
