@@ -1,8 +1,14 @@
-# Importación de módulos necesarios de FastAPI
+# Importación de módulos necesarios 
 from fastapi import FastAPI, Depends, HTTPException
+from .auth import create_access_token  
+from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from sqlalchemy.orm import Session
+from .crud import authenticate_usuario
+from .database import get_db
+from pydantic import BaseModel
 from fastapi.responses import HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
-
+from .auth import get_current_user
 # Importación de módulos para manejar la base de datos con SQLAlchemy
 from sqlalchemy.orm import Session
 from .database import SessionLocal, engine
@@ -20,6 +26,10 @@ from .crud import (
 
 # Importación de Pydantic para definir modelos de datos
 from pydantic import BaseModel
+
+#Declarando el esquema que abordara swagger para la autenticacion ( falla todavia)
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="usuarios/auth/form/")
+
 
 # Inicialización de la aplicación FastAPI
 app = FastAPI()
@@ -60,6 +70,7 @@ def get_db():
         yield db  # Hacer que la sesión esté disponible como dependencia
     finally:
         db.close()  # Cerrar la sesión después de usarla
+
 
 # Definición de modelos Pydantic para validación y serialización
 
@@ -171,12 +182,36 @@ def create_usuario_endpoint(usuario: UsuarioCreate, db: Session = Depends(get_db
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
+
+#endpoint para autenticacion de usuarios
 @app.post("/usuarios/auth/")
 def authenticate_usuario_endpoint(usuario: UsuarioAuth, db: Session = Depends(get_db)):
+    # Verificar las credenciales del usuario
     usuario_db = authenticate_usuario(db, usuario.correo, usuario.contraseña)
     if not usuario_db:
         raise HTTPException(status_code=401, detail="Credenciales incorrectas")
-    return {"message": "Autenticación exitosa", "usuario": usuario_db.nombre}
+    
+    # Generar el token JWT
+    token_data = {"sub": usuario_db.correo, "id": usuario_db.usuarioID}
+    access_token = create_access_token(data=token_data)
+    
+    # Devolver el token
+    return {"access_token": access_token, "token_type": "bearer"}
+
+
+#Endpoint para tratar de enviar formularios por swagger ( no  funciona todavia )
+@app.post("/usuarios/auth/form/")
+def authenticate_usuario_form(
+    form_data: OAuth2PasswordRequestForm = Depends(), 
+    db: Session = Depends(get_db)
+):
+    usuario_db = authenticate_usuario(db, form_data.username, form_data.password)
+    if not usuario_db:
+        raise HTTPException(status_code=401, detail="Credenciales incorrectas")
+
+    token_data = {"sub": usuario_db.correo, "id": usuario_db.usuarioID}
+    access_token = create_access_token(data=token_data)
+    return {"access_token": access_token, "token_type": "bearer"}
 
 
 @app.get("/usuarios/{usuario_id}")
@@ -189,23 +224,39 @@ def read_usuario_endpoint(usuario_id: int, db: Session = Depends(get_db)):
     return usuario
 
 @app.delete("/usuarios/{usuario_id}")
-def delete_usuario_endpoint(usuario_id: int, db: Session = Depends(get_db)):
-    # Eliminar un usuario por su ID
+def delete_usuario_endpoint(
+    usuario_id: int, 
+    db: Session = Depends(get_db), 
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Elimina un usuario solo si el token JWT es válido.
+    """
+    # current_user contiene los datos del usuario autenticado
     usuario = delete_usuario(db, usuario_id)
     if not usuario:
-        # Si no se encuentra el usuario, lanzar excepción 404
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
     return {"message": "Usuario eliminado exitosamente", "usuario": usuario}
 
+
 @app.put("/usuarios/{usuario_id}")
-def update_usuario_endpoint(usuario_id: int, usuario: UsuarioUpdate, db: Session = Depends(get_db)):
-    # Actualizar un usuario con los nuevos datos proporcionados
-    nuevo_usuario = usuario.dict(exclude_unset=True)
-    usuario_actualizado = update_usuario(db, usuario_id, nuevo_usuario)
+def update_usuario_endpoint(
+    usuario_id: int, 
+    usuario: UsuarioUpdate, 
+    db: Session = Depends(get_db), 
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Actualiza un usuario solo si el token JWT es válido.
+    """
+    # current_user contiene los datos del usuario autenticado
+    nuevos_datos = usuario.dict(exclude_unset=True)
+    usuario_actualizado = update_usuario(db, usuario_id, nuevos_datos)
     if not usuario_actualizado:
-        # Si no se encuentra el usuario, lanzar excepción 404
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
     return usuario_actualizado
+
+
 
 # Endpoints para categorías
 
